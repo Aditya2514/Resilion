@@ -68,8 +68,7 @@ npm run dev
 ### Environment variables
 ```
 EIA_API_KEY=your_key_here      # https://www.eia.gov/opendata/register.php
-GUARDIAN_API_KEY=your_key_here
- # https://open-platform.theguardian.com/access/
+GUARDIAN_API_KEY=your_key_here # https://open-platform.theguardian.com/access/
 ```
 
 ## Phase roadmap

@@ -78,39 +78,9 @@ def fetch_gdelt_articles(
     else:
         params["timespan"] = timespan
 
-    import time as _time
-
     try:
-        last_exc = None
-        for attempt, wait_s in enumerate([0, 5, 10, 20]):
-            if wait_s:
-                print(f"  [GDELT] 429 rate limit — waiting {wait_s}s before retry (attempt {attempt+1}/4)...")
-                _time.sleep(wait_s)
-            try:
-                resp = requests.get(GDELT_DOC_API_BASE, params=params, timeout=25)
-                if resp.status_code == 429:
-                    last_exc = requests.exceptions.HTTPError(
-                        f"429 Client Error: Too Many Requests for url: {resp.url}"
-                    )
-                    continue   # retry with next backoff
-                resp.raise_for_status()
-                break          # success — exit retry loop
-            except requests.exceptions.HTTPError as e:
-                if "429" in str(e):
-                    last_exc = e
-                    continue
-                raise          # non-429 HTTP error — re-raise immediately
-        else:
-            # All retries exhausted
-            return {
-                "source": "GDELT",
-                "tier": 2,
-                "status": "RATE_LIMITED",
-                "error": str(last_exc),
-                "query": query,
-                "data": [],
-            }
-
+        resp = requests.get(GDELT_DOC_API_BASE, params=params, timeout=20)
+        resp.raise_for_status()
         raw = resp.json()
     except requests.exceptions.JSONDecodeError:
         # GDELT sometimes returns empty body for no results
