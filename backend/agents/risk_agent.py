@@ -398,6 +398,9 @@ CRITICAL RULES:
         published_at = metadata.get("published_at", "")
         source_tier = int(metadata.get("source_tier", 3))
 
+        if raw_text is None:
+            raw_text = ""
+
         # ── Step 1: Pre-filter ─────────────────────────────────────────────────
         if not is_risk_relevant(title, raw_text[:500]):
             if verbose:

@@ -31,7 +31,7 @@ GUARDIAN_API_KEY = os.getenv("GUARDIAN_API_KEY", "INSERT_GUARDIAN_API_KEY_HERE")
 # This is the APPLICATION's runtime key — NOT an agent/coding credit.
 # Set GEMINI_API_KEY in your .env file (never hardcode here).
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")   # empty → agent raises config error on startup
-GEMINI_EXTRACTION_MODEL = "gemini-3.5-flash"        # Flash tier: cheap, fast, structured output
+GEMINI_EXTRACTION_MODEL = "gemini-2.5-flash"        # Flash tier: cheap, fast, structured output
 
 # These sources require no API key
 # OFAC: public Treasury CDN

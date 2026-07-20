@@ -114,53 +114,47 @@ def build_archive(
         all_records.extend(phase_records)
         stats[phase_name] = {"gdelt": len(phase_records), "guardian": 0}
 
+        # Guardian pull for this phase window (requires API key)
+        if include_guardian:
+            guardian_result = fetch_hormuz_crisis_articles(
+                from_date=start_date,
+                to_date=end_date,
+                page_size=8,
+            )
+            
+            if guardian_result.get("status") == "NO_KEY":
+                if verbose:
+                    print("  ⚠ Guardian: no API key — skipping (set GUARDIAN_API_KEY in .env)")
+            elif guardian_result.get("error"):
+                if verbose:
+                    print(f"  ⚠ Guardian error: {guardian_result['error']}")
+            else:
+                guardian_records = []
+                for art in guardian_result.get("data", []):
+                    pub_date = art.get("published_at", "")
+                    record = {
+                        "source": "GUARDIAN",
+                        "tier": 3,
+                        "crisis_phase": phase_name,
+                        "title": art.get("title", ""),
+                        "url": art.get("url", ""),
+                        "date": pub_date,
+                        "raw_text": art.get("body_text") or art.get("trail_text", ""),
+                        "metadata": {
+                            "section": art.get("section", ""),
+                            "word_count": art.get("word_count", 0),
+                        },
+                    }
+                    guardian_records.append(record)
+                
+                all_records.extend(guardian_records)
+                stats[phase_name]["guardian"] = len(guardian_records)
+                if verbose:
+                    print(f"  Guardian: {len(guardian_records)} articles fetched")
+
         # Longer pause between phases — GDELT's free tier rate-limits
         # rapid sequential calls. 5s is conservative; reduces 429s significantly.
         time.sleep(5.0)
-
-    # Guardian pull (covers full window in one call if key is available)
-    if include_guardian:
-        if verbose:
-            print(f"\n[Archive] Fetching Guardian articles (full crisis window)...")
-        guardian_result = fetch_hormuz_crisis_articles(
-            from_date="2026-02-01",
-            page_size=20,
-        )
-
-        if guardian_result.get("status") == "NO_KEY":
-            if verbose:
-                print(f"  ⚠ Guardian: no API key — skipping (set GUARDIAN_API_KEY to include)")
-        elif guardian_result.get("error"):
-            if verbose:
-                print(f"  ⚠ Guardian error: {guardian_result['error']}")
-        else:
-            guardian_records = []
-            for art in guardian_result.get("data", []):
-                pub_date = art.get("published_at", "")
-                # Determine crisis phase from date
-                phase = _classify_crisis_phase(pub_date)
-                record = {
-                    "source": "GUARDIAN",
-                    "tier": 3,
-                    "crisis_phase": phase,
-                    "title": art.get("title", ""),
-                    "url": art.get("url", ""),
-                    "date": pub_date,
-                    "raw_text": art.get("body_text") or art.get("trail_text", ""),
-                    "metadata": {
-                        "section": art.get("section", ""),
-                        "word_count": art.get("word_count", 0),
-                    },
-                }
-                guardian_records.append(record)
-                phase_key = phase or "unknown"
-                if phase_key in stats:
-                    stats[phase_key]["guardian"] = stats[phase_key].get("guardian", 0) + 1
-
-            # ─── BUG FIX: extend all_records with the collected Guardian articles ───
-            all_records.extend(guardian_records)
-            if verbose:
-                print(f"  Guardian: {len(guardian_records)} articles fetched")
 
     # ── Post-fetch integrity check ──────────────────────────────────────────────
     # If no real data was collected, ABORT loudly — do not substitute fabricated content.
