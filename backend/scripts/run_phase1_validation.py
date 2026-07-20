@@ -141,34 +141,22 @@ def run_validation() -> None:
         corridor_trunc = (evt.corridor or "—")[:23]
         print(f"  {idx:<3} {title_trunc:<45} {corridor_trunc:<25} {evt.severity.value:<10} {evt.confidence:<7.3f}")
 
-    # ── Step 6: Spot-check 3 articles ─────────────────────────────────────────
+    # ── Step 6: Detailed Output for Eyeballing All Extracted Events ───────────
     print(f"\n{SEPARATOR}")
-    print("  SPOT-CHECK: Original Text vs Extracted Fields (3 articles)")
+    print("  DETAILED VERIFICATION: All Extracted Events")
     print(SEPARATOR)
 
-    for sc_idx in SPOT_CHECK_INDICES:
-        if sc_idx >= len(inserted_results):
-            continue
-        record, result = inserted_results[sc_idx]
+    for idx, (record, result) in enumerate(inserted_results, 1):
         evt = result.event_node
-        raw = result.raw_extracted or {}
-
-        print(f"\n  Spot-check #{sc_idx + 1}: {evt.title[:70]}")
-        print(f"  URL:      {record.get('url', '')}")
-        print(f"  Published:{record.get('date', '')}")
-        print()
-        print(f"  -- Original text snippet (first 400 chars) --")
-        snippet = (record.get("raw_text", "") or "")[:400]
-        for line in snippet.split("\n")[:6]:
-            print(f"     {line}")
-        print()
-        print(f"  -- Extracted fields --")
-        print(f"     event_type:  {evt.event_type.value}")
-        print(f"     corridor:    {evt.corridor or 'null'}")
-        print(f"     severity:    {evt.severity.value}")
-        print(f"     confidence:  {evt.confidence:.3f}")
-        print(f"     description: {evt.description[:200]}")
-        print()
+        print(f"\n  Event #{idx}: {evt.title[:90]}")
+        print(f"  URL:         {record.get('url', '')}")
+        print(f"  Published:   {record.get('date', '')}")
+        print(f"  Event Type:  {evt.event_type.value}")
+        print(f"  Corridor:    {evt.corridor or 'null'}")
+        print(f"  Severity:    {evt.severity.value}")
+        print(f"  Confidence:  {evt.confidence:.3f} (corroborations: {evt.corroborating_sources})")
+        print(f"  Description: {evt.description}")
+        print("-" * 50)
 
     # ── Step 7: Vocabulary containment check ──────────────────────────────────
     print(SEPARATOR)

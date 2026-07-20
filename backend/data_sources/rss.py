@@ -151,14 +151,23 @@ RISK_SIGNAL_KEYWORDS = [
     "import", "russian urals", "west africa",
 ]
 
+import re
+
+# Compile the pattern once using \b word boundary markers for strict matching
+_RISK_PATTERN = re.compile(
+    r"\b(" + "|".join(re.escape(kw) for kw in RISK_SIGNAL_KEYWORDS) + r")\b",
+    re.IGNORECASE
+)
 
 def is_risk_relevant(title: str, summary: str = "", full_text: str = "") -> bool:
     """
     Returns True if the article is likely a geopolitical/supply-chain risk signal.
-    Phase 1 should call this before passing an article to the LLM extractor.
+    Phase 1 calls this before passing an article to the LLM extractor.
+    Enforces whole-word regex matching to prevent substring false-positives
+    (e.g., matching 'port' in 'support'/'deportation'/'airport').
     """
-    combined = (title + " " + summary + " " + full_text).lower()
-    return any(kw in combined for kw in RISK_SIGNAL_KEYWORDS)
+    combined = title + " " + summary + " " + full_text
+    return bool(_RISK_PATTERN.search(combined))
 
 
 def fetch_rss_risk_signals(

@@ -146,6 +146,15 @@ class ExtractedEvent(BaseModel):
             "Do not speculate. Do not include information not in the source text."
         ),
     )
+    is_supply_chain_relevant: bool = Field(
+        ...,
+        description=(
+            "Set to true ONLY if this article describes a real geopolitical, military, policy, "
+            "or shipping incident that directly impacts or threatens crude oil/energy supply chains "
+            "(e.g., blockades, sanctions, drone attacks on tankers, refinery damage, price spikes). "
+            "Set to false for general domestic politics, sports, entertainment, or unrelated news."
+        ),
+    )
     occurred_at_hint: Optional[str] = Field(
         None,
         description="Best estimate of when the event occurred (ISO 8601 date/datetime if inferable from text, else null).",
@@ -290,18 +299,27 @@ def compute_confidence(
     occurred_at_str: Optional[str],
 ) -> float:
     """
-    confidence = 0.3 base
-               + 0.2 × min(corroborating_independent_sources, 3)
-               + recency_multiplier (decays 1.0→0.5 over 72h)
+    Calculates confidence by scaling the base score (base + corroboration boost)
+    by the recency multiplier:
+        confidence = (0.3 + 0.2 × min(corroborating_sources, 3)) × recency_multiplier
 
-    Note: recency_multiplier is ADDED (not multiplied) to bring total closer to 1.0
-    for very fresh, multi-corroborated events.
+    where:
+        - base = 0.3
+        - corroboration boost = 0.2 per source (up to 0.6 max)
+        - recency_multiplier = decays from 1.0 (fresh) to 0.5 (72h+ old)
+
+    This ensures that:
+        - A fresh, uncorroborated event scores 0.300
+        - A fresh, fully corroborated event (3+ sources) scores 0.900
+        - An old, uncorroborated event scores 0.150
+        - An old, fully corroborated event scores 0.450
     """
     recency = _compute_recency_multiplier(occurred_at_str)
     corroboration_boost = CONFIDENCE_PER_CORROBORATING_SOURCE * min(
         corroborating_sources, CONFIDENCE_MAX_CORROBORATING
     )
-    raw = CONFIDENCE_BASE + corroboration_boost + recency
+    base_confidence = CONFIDENCE_BASE + corroboration_boost
+    raw = base_confidence * recency
     # Clamp to [0, 1]
     return round(min(max(raw, 0.0), 1.0), 3)
 
@@ -421,7 +439,17 @@ CRITICAL RULES:
             )
 
         if verbose:
-            print(f"    event_type={extracted.event_type}, corridor={extracted.corridor}, severity={extracted.severity}")
+            print(f"    event_type={extracted.event_type}, corridor={extracted.corridor}, severity={extracted.severity}, relevant={extracted.is_supply_chain_relevant}")
+
+        # ── Step 2.5: Relevance validation (Second line of defense) ───────────
+        if not extracted.is_supply_chain_relevant:
+            if verbose:
+                print(f"    [REJECT] LLM classified as not supply chain relevant: {title[:60]}")
+            return ExtractionResult(
+                was_risk_relevant=False,
+                rejection_reason="LLM classified as not supply chain relevant",
+                raw_extracted=extracted.model_dump(),
+            )
 
         # ── Step 3: Determine occurred_at ──────────────────────────────────────
         occurred_at = extracted.occurred_at_hint or published_at
