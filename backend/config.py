@@ -27,6 +27,12 @@ HISTORICAL_DIR.mkdir(exist_ok=True)
 EIA_API_KEY = os.getenv("EIA_API_KEY", "INSERT_EIA_API_KEY_HERE")
 GUARDIAN_API_KEY = os.getenv("GUARDIAN_API_KEY", "INSERT_GUARDIAN_API_KEY_HERE")
 
+# Gemini API key for Phase 1 risk extraction — get yours at https://aistudio.google.com/
+# This is the APPLICATION's runtime key — NOT an agent/coding credit.
+# Set GEMINI_API_KEY in your .env file (never hardcode here).
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")   # empty → agent raises config error on startup
+GEMINI_EXTRACTION_MODEL = "gemini-2.0-flash"        # Flash tier: cheap, fast, structured output
+
 # These sources require no API key
 # OFAC: public Treasury CDN
 # GDELT: public DOC API
