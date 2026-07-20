@@ -91,15 +91,21 @@ def fetch_rss_feed(
         }
 
     entries = []
-    for i, entry in enumerate(parsed.entries[:max_entries]):
+    skipped_non_risk = 0
+    for i, entry in enumerate(parsed.entries):
+        if len(entries) >= max_entries:
+            break
+
         entry_url = entry.get("link", "")
         published = entry.get("published", entry.get("updated", ""))
+        title = entry.get("title", "")
+        summary = entry.get("summary", "")
 
         record: dict = {
-            "title": entry.get("title", ""),
+            "title": title,
             "url": entry_url,
             "published": published,
-            "summary": entry.get("summary", "")[:500],
+            "summary": summary[:500],
             "tags": [t.term for t in entry.get("tags", [])],
             "source": f"RSS_{feed_name.upper()}",
             "tier": 3,
@@ -107,8 +113,7 @@ def fetch_rss_feed(
             "full_text_chars": 0,
         }
 
-        # Only fetch full text for the first entry (exit criteria demo)
-        if fetch_full_text and i == 0 and entry_url and HAS_TRAFILATURA:
+        if fetch_full_text and entry_url and HAS_TRAFILATURA:
             full_text = _extract_full_text(entry_url, max_chars=full_text_max_chars)
             record["full_text"] = full_text
             record["full_text_chars"] = len(full_text) if full_text else 0
@@ -127,6 +132,67 @@ def fetch_rss_feed(
         "trafilatura_available": HAS_TRAFILATURA,
         "data": entries,
     }
+
+
+# ── Risk signal keywords for Phase 1 pre-filtering ──────────────────────────
+# Exit criteria (Phase 0) uses any article; Phase 1 MUST filter to risk signals only.
+RISK_SIGNAL_KEYWORDS = [
+    # Shipping / maritime
+    "tanker", "vessel", "shipping", "maritime", "port", "freight", "cargo",
+    "chokepoint", "strait", "canal", "blockade", "seizure", "piracy",
+    # Energy supply disruption
+    "crude oil", "petroleum", "oil supply", "production cut", "disruption",
+    "outage", "shortage", "refinery", "pipeline", "brent", "opec",
+    # Geopolitical
+    "iran", "hormuz", "houthi", "red sea", "aden", "sanctions", "strike",
+    "military", "attack", "conflict", "escalation", "naval", "patrol",
+    # India-specific supply chain
+    "india", "indian oil", "iocl", "bpcl", "reliance", "jamnagar", "panipat",
+    "import", "russian urals", "west africa",
+]
+
+
+def is_risk_relevant(title: str, summary: str = "", full_text: str = "") -> bool:
+    """
+    Returns True if the article is likely a geopolitical/supply-chain risk signal.
+    Phase 1 should call this before passing an article to the LLM extractor.
+    """
+    combined = (title + " " + summary + " " + full_text).lower()
+    return any(kw in combined for kw in RISK_SIGNAL_KEYWORDS)
+
+
+def fetch_rss_risk_signals(
+    feed_name: str = PRIMARY_RSS_FEED,
+    feed_url: str | None = None,
+    max_entries: int = 10,
+    fetch_full_text: bool = True,
+    full_text_max_chars: int = 4000,
+) -> dict:
+    """
+    Like fetch_rss_feed but pre-filters to risk-relevant articles only.
+    For use in Phase 1 real-time ingestion — not exit-criteria tests.
+    """
+    result = fetch_rss_feed(
+        feed_name=feed_name,
+        feed_url=feed_url,
+        max_entries=max_entries * 3,   # oversample, then filter
+        fetch_full_text=fetch_full_text,
+        full_text_max_chars=full_text_max_chars,
+    )
+    if result.get("error"):
+        return result
+
+    all_entries = result.get("data", [])
+    risk_entries = [
+        e for e in all_entries
+        if is_risk_relevant(e.get("title", ""), e.get("summary", ""), e.get("full_text", "") or "")
+    ][:max_entries]
+
+    result["data"] = risk_entries
+    result["total_returned"] = len(risk_entries)
+    result["risk_filtered"] = True
+    result["skipped_non_risk"] = len(all_entries) - len(risk_entries)
+    return result
 
 
 def _extract_full_text(url: str, max_chars: int = 4000) -> str | None:
