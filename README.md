@@ -5,11 +5,10 @@
 # ⬡ RESILION
 ### *AI-Driven Energy Supply Chain Resilience & Geo-Risk Intelligence*
 
-[![Phase 0 Status](https://img.shields.io/badge/Phase_0_Foundation-PASSED_%E2%9C%85-22c55e?style=for-the-badge)](file:///home/kskroyal/Projects/re/Resilion-/backend/scripts/exit_criteria.py)
-[![Python](https://img.shields.io/badge/Python-3.14%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18.3-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
-[![NetworkX](https://img.shields.io/badge/Knowledge_Graph-NetworkX_3.6-FF6F00?style=for-the-badge)](https://networkx.org)
+[![NetworkX](https://img.shields.io/badge/Knowledge_Graph-NetworkX_3.3-FF6F00?style=for-the-badge)](https://networkx.org)
 [![Gemini AI](https://img.shields.io/badge/AI_Engine-Gemini_2.5_Flash-8E44AD?style=for-the-badge&logo=google&logoColor=white)](https://aistudio.google.com)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
