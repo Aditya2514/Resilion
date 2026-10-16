@@ -150,8 +150,8 @@ It then ranks alternative crude suppliers:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Aditya2514/Resilion-.git
-cd Resilion-/backend
+git clone https://github.com/Aditya2514/Resilion.git
+cd Resilion/backend
 
 # Create & activate a Python virtual environment
 python3 -m venv .venv
